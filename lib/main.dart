@@ -289,21 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: _isAlarming
-          ? _buildAlarmScreen()
-          : Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/page_background.png'),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black54,
-                    BlendMode.darken,
-                  ),
-                ),
-              ),
-              child: _buildSettingsScreen(),
-            ),
+      body: _isAlarming ? _buildAlarmScreen() : _buildSettingsScreen(),
     );
   }
 
@@ -378,7 +364,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: _isServiceActive
+                    ? [
+                        BoxShadow(
+                          color: Colors.greenAccent.withAlpha(76),
+                          blurRadius: 25,
+                          spreadRadius: 5,
+                        )
+                      ]
+                    : [],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(60),
+                child: ColorFiltered(
+                  colorFilter: _isServiceActive
+                      ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
+                      : const ColorFilter.matrix(<double>[
+                          0.2126, 0.7152, 0.0722, 0, 0,
+                          0.2126, 0.7152, 0.0722, 0, 0,
+                          0.2126, 0.7152, 0.0722, 0, 0,
+                          0,      0,      0,      1, 0,
+                        ]),
+                  child: Image.asset(
+                    'assets/logo1.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
             Text(
               _isServiceActive ? 'Protection Active' : 'Protection Disabled',
               style: TextStyle(
