@@ -31,6 +31,7 @@ class MainActivity : FlutterFragmentActivity() {
                     } else {
                         true
                     }
+                    println("canUseFullScreenIntent native: $granted, SDK: ${Build.VERSION.SDK_INT}")
                     result.success(granted)
                 }
                 "openFullScreenIntentSettings" -> {

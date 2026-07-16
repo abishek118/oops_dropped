@@ -123,6 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _checkAndRequestFullScreenPermission() async {
     try {
       final bool canUse = await _channel.invokeMethod<bool>('canUseFullScreenIntent') ?? true;
+      debugPrint("canUseFullScreenIntent returned: $canUse");
       if (!canUse) {
         if (mounted) {
           await showDialog(
