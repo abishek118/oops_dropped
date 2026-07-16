@@ -25,10 +25,23 @@ class FallDetector {
   bool get isAlarmActive => _isAlarmActive;
   Timer? _flashTimer;
   final Function(bool)? onAlarmStateChanged;
+  bool _playSound = true;
 
   FallDetector({this.onAlarmStateChanged}) {
     _initNotifications();
     _configureAudioContext();
+    _loadInitialSettings();
+  }
+
+  Future<void> _loadInitialSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _playSound = prefs.getBool('play_sound_on_fall') ?? true;
+    } catch (_) {}
+  }
+
+  void setPlaySound(bool value) {
+    _playSound = value;
   }
 
   void _configureAudioContext() {
@@ -108,15 +121,13 @@ class FallDetector {
     _triggerFullScreenIntent();
 
     // 2. Play Alarm Sound in a loop
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final bool playSound = prefs.getBool('play_sound_on_fall') ?? true;
-      if (playSound) {
+    if (_playSound) {
+      try {
         await _audioPlayer.setReleaseMode(ReleaseMode.loop);
         await _audioPlayer.play(AssetSource('audio/alarm.wav'));
+      } catch (e) {
+        print("Could not play alarm sound: $e");
       }
-    } catch (e) {
-      print("Could not play alarm sound: $e");
     }
 
     // 3. Blink Flashlight

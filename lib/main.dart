@@ -193,6 +193,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _playSound = value;
     });
     await prefs.setBool('play_sound_on_fall', value);
+    
+    final service = FlutterBackgroundService();
+    if (await service.isRunning()) {
+      service.invoke('update_settings', {'play_sound_on_fall': value});
+    }
   }
 
   Future<void> _toggleSecureStop(bool value) async {

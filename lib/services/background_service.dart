@@ -68,6 +68,12 @@ void onStart(ServiceInstance service) async {
   );
   fallDetector.startListening();
 
+  service.on('update_settings').listen((event) {
+    if (event != null && event['play_sound_on_fall'] != null) {
+      fallDetector.setPlaySound(event['play_sound_on_fall'] as bool);
+    }
+  });
+
   service.on('stop_alarm').listen((event) {
     fallDetector.stopAlarm();
   });
