@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'services/background_service.dart';
 
 void main() async {
@@ -44,6 +46,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isAlarming = false;
   bool _secureStop = false;
 
+  final TextEditingController _phone1Controller = TextEditingController();
+  final TextEditingController _phone2Controller = TextEditingController();
+  String _emergencyNumber1 = '';
+  String _emergencyNumber2 = '';
+
   @override
   void initState() {
     super.initState();
@@ -53,10 +60,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Listen for alarm state from background service
     FlutterBackgroundService().on('alarm_state').listen((event) {
       if (event != null && event['is_alarming'] != null) {
+        final bool shouldAlarm = event['is_alarming'];
         if (mounted) {
           setState(() {
-            _isAlarming = event['is_alarming'];
+            _isAlarming = shouldAlarm;
           });
+          
+          // Maximize or reset screen brightness in the foreground UI
+          if (shouldAlarm) {
+            try { ScreenBrightness().setApplicationScreenBrightness(1.0); } catch (_) {}
+          } else {
+            try { ScreenBrightness().resetApplicationScreenBrightness(); } catch (_) {}
+          }
         }
       }
     });
@@ -75,6 +90,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _phone1Controller.dispose();
+    _phone2Controller.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -85,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _isServiceActive = prefs.getBool('service_active') ?? false;
       _playSound = prefs.getBool('play_sound_on_fall') ?? true;
       _secureStop = prefs.getBool('secure_stop_alarm') ?? false;
+      _emergencyNumber1 = prefs.getString('emergency_number_1') ?? '';
+      _emergencyNumber2 = prefs.getString('emergency_number_2') ?? '';
+      _phone1Controller.text = _emergencyNumber1;
+      _phone2Controller.text = _emergencyNumber2;
     });
     
     // Check if background service is actually running
@@ -133,6 +154,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await prefs.setBool('secure_stop_alarm', value);
   }
 
+  Future<void> _saveEmergencyNumber(int index, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (index == 1) {
+      _emergencyNumber1 = value;
+      await prefs.setString('emergency_number_1', value);
+    } else {
+      _emergencyNumber2 = value;
+      await prefs.setString('emergency_number_2', value);
+    }
+  }
+
+  Future<void> _callNumber(String number) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: number.replaceAll(RegExp(r'\s+'), ''),
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not launch the phone dialer.')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error launching dialer: $e');
+    }
+  }
+
   Future<void> _stopAlarm() async {
     if (_secureStop) {
       try {
@@ -169,6 +221,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     }
 
+    // Reset screen brightness when alarm stops
+    try { ScreenBrightness().resetApplicationScreenBrightness(); } catch (_) {}
+
     FlutterBackgroundService().invoke('stop_alarm');
     setState(() {
       _isAlarming = false;
@@ -191,23 +246,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildAlarmScreen() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.warning_amber_rounded, size: 150, color: Colors.redAccent),
-          const SizedBox(height: 32),
-          const Text("FALL DETECTED", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.redAccent)),
-          const SizedBox(height: 48),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            onPressed: _stopAlarm,
-            child: const Text("I'M OKAY - STOP ALARM", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          )
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.warning_amber_rounded, size: 120, color: Colors.redAccent),
+            const SizedBox(height: 24),
+            const Text("FALL DETECTED", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+            const SizedBox(height: 32),
+            
+            if (_emergencyNumber1.isNotEmpty || _emergencyNumber2.isNotEmpty) ...[
+              const Text(
+                "EMERGENCY CONTACTS",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
+              if (_emergencyNumber1.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.call, color: Colors.white),
+                    label: Text("CALL: $_emergencyNumber1", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      minimumSize: const Size(280, 56),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => _callNumber(_emergencyNumber1),
+                  ),
+                ),
+              if (_emergencyNumber2.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.call, color: Colors.white),
+                    label: Text("CALL: $_emergencyNumber2", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      minimumSize: const Size(280, 56),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => _callNumber(_emergencyNumber2),
+                  ),
+                ),
+              const SizedBox(height: 32),
+            ],
+            
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: _stopAlarm,
+              child: const Text("I'M OKAY - STOP ALARM", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -301,6 +396,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     activeThumbColor: Colors.greenAccent,
                     onChanged: _toggleSecureStop,
                     secondary: const Icon(Icons.lock_outline),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Emergency Contacts',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white70),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _phone1Controller,
+                    decoration: const InputDecoration(
+                      labelText: 'Emergency Contact 1',
+                      icon: Icon(Icons.phone, color: Colors.greenAccent),
+                      border: InputBorder.none,
+                      labelStyle: TextStyle(color: Colors.white54),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.phone,
+                    onChanged: (val) => _saveEmergencyNumber(1, val),
+                  ),
+                  const Divider(height: 1, color: Colors.white12),
+                  TextField(
+                    controller: _phone2Controller,
+                    decoration: const InputDecoration(
+                      labelText: 'Emergency Contact 2',
+                      icon: Icon(Icons.phone, color: Colors.greenAccent),
+                      border: InputBorder.none,
+                      labelStyle: TextStyle(color: Colors.white54),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.phone,
+                    onChanged: (val) => _saveEmergencyNumber(2, val),
                   ),
                 ],
               ),

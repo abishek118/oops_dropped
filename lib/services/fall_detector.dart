@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:screen_brightness/screen_brightness.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:torch_light/torch_light.dart';
@@ -29,6 +28,26 @@ class FallDetector {
 
   FallDetector({this.onAlarmStateChanged}) {
     _initNotifications();
+    _configureAudioContext();
+  }
+
+  void _configureAudioContext() {
+    _audioPlayer.setAudioContext(
+      AudioContext(
+        android: const AudioContextAndroid(
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.alarm,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playAndRecord,
+          options: const {
+            AVAudioSessionOptions.defaultToSpeaker,
+            AVAudioSessionOptions.allowBluetooth,
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _initNotifications() async {
@@ -88,14 +107,7 @@ class FallDetector {
     // 1. Wake screen via full-screen intent notification
     _triggerFullScreenIntent();
 
-    // 2. Maximize Screen Brightness
-    try {
-      await ScreenBrightness().setApplicationScreenBrightness(1.0);
-    } catch (e) {
-      print("Could not set screen brightness: $e");
-    }
-
-    // 3. Play Alarm Sound in a loop
+    // 2. Play Alarm Sound in a loop
     try {
       final prefs = await SharedPreferences.getInstance();
       final bool playSound = prefs.getBool('play_sound_on_fall') ?? true;
@@ -107,7 +119,7 @@ class FallDetector {
       print("Could not play alarm sound: $e");
     }
 
-    // 4. Blink Flashlight
+    // 3. Blink Flashlight
     _startFlashing();
   }
 
@@ -167,9 +179,6 @@ class FallDetector {
 
     // Stop audio
     await _audioPlayer.stop();
-
-    // Reset screen brightness
-    try { await ScreenBrightness().resetApplicationScreenBrightness(); } catch (_) {}
     
     // Cancel notification
     await _flutterLocalNotificationsPlugin.cancel(id: 0);
