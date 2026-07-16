@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Oops Dropped',
+      title: 'SOSpot',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -284,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: _isAlarming ? Colors.white : null,
       appBar: _isAlarming ? null : AppBar(
-        title: const Text('Oops Dropped', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('SOSpot', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
