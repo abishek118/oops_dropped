@@ -122,9 +122,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _checkAndRequestFullScreenPermission() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool alreadyPrompted = prefs.getBool('full_screen_intent_prompted') ?? false;
       final bool canUse = await _channel.invokeMethod<bool>('canUseFullScreenIntent') ?? true;
-      debugPrint("canUseFullScreenIntent returned: $canUse");
-      if (!canUse) {
+      
+      debugPrint("canUseFullScreenIntent returned: $canUse, alreadyPrompted: $alreadyPrompted");
+      
+      if (!canUse || !alreadyPrompted) {
         if (mounted) {
           await showDialog(
             context: context,
@@ -138,12 +142,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await prefs.setBool('full_screen_intent_prompted', true);
+                    },
                     child: const Text("CANCEL"),
                   ),
                   TextButton(
                     onPressed: () async {
                       Navigator.pop(context);
+                      await prefs.setBool('full_screen_intent_prompted', true);
                       await _channel.invokeMethod('openFullScreenIntentSettings');
                     },
                     child: const Text("ENABLE"),
