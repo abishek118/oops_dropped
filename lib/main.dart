@@ -166,9 +166,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (await Permission.notification.isDenied) {
         await Permission.notification.request();
       }
-      if (await Permission.systemAlertWindow.isDenied) {
-        await Permission.systemAlertWindow.request();
-      }
       await _checkAndRequestFullScreenPermission();
       await service.startService();
     } else {
