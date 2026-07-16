@@ -72,6 +72,7 @@ flutter:
     - assets/audio/alarm.wav
     - assets/logo.png
     - assets/logo1.png
+    - assets/page_background.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -103,7 +104,7 @@ flutter:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/logo1.png"
+  image_path: "assets/logo1_foreground.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/logo1.png"
+  adaptive_icon_foreground: "assets/logo1_foreground.png"
