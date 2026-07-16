@@ -50,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final TextEditingController _phone2Controller = TextEditingController();
   String _emergencyNumber1 = '';
   String _emergencyNumber2 = '';
+  static const _channel = MethodChannel('com.example.oops_dropped/lockscreen');
 
   @override
   void initState() {
@@ -119,6 +120,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _checkAndRequestFullScreenPermission() async {
+    try {
+      final bool canUse = await _channel.invokeMethod<bool>('canUseFullScreenIntent') ?? true;
+      if (!canUse) {
+        if (mounted) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text("Permission Required"),
+                content: const Text(
+                  "To display the alarm directly on your lock screen when your phone drops, "
+                  "please allow 'Full-Screen Notifications' in the app settings.",
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("CANCEL"),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _channel.invokeMethod('openFullScreenIntentSettings');
+                    },
+                    child: const Text("ENABLE"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking full-screen intent permission: $e");
+    }
+  }
+
   Future<void> _toggleService(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     final service = FlutterBackgroundService();
@@ -130,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (await Permission.systemAlertWindow.isDenied) {
         await Permission.systemAlertWindow.request();
       }
+      await _checkAndRequestFullScreenPermission();
       await service.startService();
     } else {
       service.invoke('stopService');
