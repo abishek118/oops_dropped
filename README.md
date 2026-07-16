@@ -1,8 +1,8 @@
-# Oops Dropped 📱💥
+# SOSpot 📱💥
 
 A premium, modern Flutter application that monitors for phone drops in the background and takes defensive actions to protect the user's phone, combined with a secure local lock-screen authorization stop mechanism.
 
-[![Download APK](https://img.shields.io/badge/Download-Release%20APK-green?style=for-the-badge&logo=android)](https://github.com/abishek118/oops_dropped/releases/download/v1.0.0/app-release.apk)
+[![Download APK](https://img.shields.io/badge/Download-Release%20APK-green?style=for-the-badge&logo=android)](https://github.com/abishek118/oops_dropped/releases/latest/download/app-release.apk)
 
 ---
 
@@ -19,7 +19,7 @@ A premium, modern Flutter application that monitors for phone drops in the backg
 
 ## 🛠️ Installation & Setup
 
-1. Download the latest version of the [app-release.apk](https://github.com/abishek118/oops_dropped/releases/download/v1.0.0/app-release.apk) directly to your Android device.
+1. Download the latest version of the [app-release.apk](https://github.com/abishek118/oops_dropped/releases/latest/download/app-release.apk) directly to your Android device.
 2. Allow installation from unknown sources when prompted by your browser.
-3. Open **Oops Dropped** and grant background execution, camera/flashlight, and local notification permissions.
+3. Open **SOSpot** and grant background execution, camera/flashlight, and local notification permissions.
 4. Toggle on the service, place the phone on a soft surface, and simulate a drop to test!
